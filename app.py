@@ -9,6 +9,7 @@ from EyeNet import EyeNet
 from FacialSkinColorNet import FacialSkinColorNet
 
 from extract_eye_from_face import extract_eye_area
+from face_detection import eye_extract
 
 
 title = "Baymax! Medical Image Classification 🏥"
@@ -37,7 +38,9 @@ def load_model(model_path, device):
         checkpoint = torch.load(str(model_path), map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
+        
         return model
+    
     except Exception as e:
         print(f"Error loading model: {e}")
         return None
@@ -59,7 +62,9 @@ def test_single_image(model, image, device, classes):
             predicted_class = torch.argmax(probabilities, dim=1).item()
 
         class_probs = {class_name: float(prob) for class_name, prob in zip(classes, probabilities[0])}
+        
         return classes[predicted_class], class_probs
+    
     except Exception as e:
         print(f"Error processing image: {e}")
         return None, None
@@ -75,47 +80,62 @@ eye_model = load_model(EYE_MODEL_PATH, device)
 
 def analyze_image(input_img):
     if input_img is None:
-        return "No image uploaded."
+        return "No image uploaded.", None
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-    axes = axes.ravel()
-
-
-    skin_predicted_class, skin_probabilities = test_single_image(skin_model, input_img, device, classes_for_skin_color)
+    fig1 = plt.figure(figsize=(7, 5))
+    skin_predicted_class, skin_probabilities = test_single_image(
+        skin_model, input_img, device, classes_for_skin_color
+    )
     if skin_predicted_class and skin_probabilities:
         labels = list(skin_probabilities.keys())
         probs = list(skin_probabilities.values())
-        axes[0].bar(labels, [p * 100 for p in probs], color=['red', 'green', 'gray', 'yellow'])
-        axes[0].set_title(f"Skin Prediction: {skin_predicted_class}")
-        axes[0].set_ylabel("Confidence (%)")
-        axes[0].set_ylim(0, 100)
-        axes[0].set_xticklabels(labels, rotation=45, ha='right')
+        plt.bar(labels, [p * 100 for p in probs], color=['red', 'green', 'gray', 'yellow'])
+        plt.title(f"Skin Prediction: {skin_predicted_class}")
+        plt.ylabel("Confidence (%)")
+        plt.ylim(0, 100)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
 
 
-    extracted_eye_part = extract_eye_area(input_img, 'eye_output')
+    try:
+        # code for eye extraction
+        extacted_eye_area = eye_extract(input_img, 'eye_output')
+
+        fig2 = plt.figure(figsize=(7, 5))
+        eye_predicted_class, eye_probabilities = test_single_image(
+            eye_model, extacted_eye_area, device, classes_for_eye
+        )
+        if eye_predicted_class and eye_probabilities:
+            labels = list(eye_probabilities.keys())
+            probs = list(eye_probabilities.values())
+            plt.bar(labels, [p * 100 for p in probs], color=['blue', 'orange', 'purple'])
+            plt.title(f"Eye Prediction: {eye_predicted_class}")
+            plt.ylabel("Confidence (%)")
+            plt.ylim(0, 100)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
     
-    eye_predicted_class, eye_probabilities = test_single_image(eye_model, extracted_eye_part, device, classes_for_eye)
-    if eye_predicted_class and eye_probabilities:
-        labels = list(eye_probabilities.keys())
-        probs = list(eye_probabilities.values())
-        axes[1].bar(labels, [p * 100 for p in probs], color=['blue', 'orange', 'purple'])
-        axes[1].set_title(f"Eye Prediction: {eye_predicted_class}")
-        axes[1].set_ylabel("Confidence (%)")
-        axes[1].set_ylim(0, 100)
-        axes[1].set_xticklabels(labels, rotation=45, ha='right')
+    except Exception as e:
+        print(f"Error processing eye area: {e}")
+        fig2 = plt.figure(figsize=(7, 5))
+        plt.text(0.5, 0.5, "Error extracting eye area", fontsize=14, ha='center')
+        plt.axis('off')
 
-    plt.tight_layout()
-    return fig
+    return fig1, fig2
 
 
 demo = gr.Interface(
     fn=analyze_image,
     inputs=gr.Image(sources=['upload', 'webcam', 'clipboard'], type="pil", label="Upload or Take Photo"),
-    outputs=gr.Plot(label="Prediction Results"),
+    outputs=[
+        gr.Plot(label="Skin Prediction Results"),
+        gr.Plot(label="Eye Prediction Results"),
+    ],
     title=title,
     description=description,
     theme="default"
 )
+
 
 if __name__ == "__main__":
     demo.launch()

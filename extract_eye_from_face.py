@@ -2,6 +2,8 @@ import dlib
 import cv2
 import numpy as np
 from PIL import Image
+import os
+
 
 def extract_eye_area(image, output_path=None):  
     """
@@ -55,9 +57,16 @@ def extract_eye_area(image, output_path=None):
     eye_area = img[min_y:max_y, min_x:max_x]
 
     if output_path is not None:
-        if not output_path.lower().endswith(('.jpg', '.jpeg', '.png')):
-            output_path += '.jpg'
+        if not os.path.isdir(output_path):
+            raise ValueError(f"Output path must be a directory. Got: {output_path}")
 
-        cv2.imwrite(output_path, eye_area)
+        original_name = os.path.splitext(os.path.basename(image))[0]
+
+        new_file_name = f"{original_name}_eye-extracted.jpg"
+
+        full_output_path = os.path.join(output_path, new_file_name)
+
+        cv2.imwrite(full_output_path, eye_area)
+
 
     return eye_area
