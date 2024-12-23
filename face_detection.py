@@ -1,5 +1,7 @@
 import cv2
 import os
+import numpy as np
+from PIL import Image
 
 
 def eye_extract(input_img, output_path):
@@ -18,9 +20,17 @@ def eye_extract(input_img, output_path):
     if eye_cascade.empty():
         raise RuntimeError("Haar Cascade for eyes could not be loaded. Check the path.")
 
-    img = cv2.imread(input_img)
-    if img is None:
-        raise FileNotFoundError(f"Image file not found: {input_img}")
+    if isinstance(input_img, str):
+        img = cv2.imread(input_img)
+        if img is None:
+            raise FileNotFoundError(f"Image file not found: {input_img}")
+    elif isinstance(input_img, Image.Image):
+        img = cv2.cvtColor(np.array(input_img), cv2.COLOR_RGB2BGR)
+    elif isinstance(input_img, np.ndarray):
+        img = input_img
+    else:
+        raise ValueError("Unsupported input type. Must be a file path, PIL Image, or NumPy array.")
+
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -36,7 +46,7 @@ def eye_extract(input_img, output_path):
         eye_part = img[y:y + h, x:x + w]
 
         if output_path is not None:
-            original_name = os.path.splitext(os.path.basename(input_img))[0]
+            original_name = os.path.splitext(os.path.basename(input_img if isinstance(input_img, str) else "image"))[0]
             save_path = f"{original_name}_eye-extracted.jpg"
             full_path = os.path.join(output_path, save_path)
 

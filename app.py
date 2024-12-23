@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 import torch
 import torchvision.transforms as transforms
 from pathlib import Path
+from PIL import Image
+import cv2
 
 from EyeNet import EyeNet
 from FacialSkinColorNet import FacialSkinColorNet
 
 from extract_eye_from_face import extract_eye_area
 from face_detection import eye_extract
+from eye_detection import eye_detect
 
 
 title = "Baymax! Medical Image Classification 🏥"
@@ -19,7 +22,7 @@ description = """
 """
 
 classes_for_skin_color = ['Facial Redness', 'Normal', 'Pale/Grayish Skin Tone', 'Yellowish Skin Tone']
-classes_for_eye = ['Jaundice', 'Conjunctivitis', 'Dark Circles Under Eyes']
+classes_for_eye = ['Conjunctivitis', 'Dark Circles Under Eyes', 'Normal', 'Jaundice']
 
 
 def load_model(model_path, device):
@@ -48,6 +51,9 @@ def load_model(model_path, device):
 
 def test_single_image(model, image, device, classes):
     try:
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -81,7 +87,7 @@ eye_model = load_model(EYE_MODEL_PATH, device)
 def analyze_image(input_img):
     if input_img is None:
         return "No image uploaded.", None
-
+    
     fig1 = plt.figure(figsize=(7, 5))
     skin_predicted_class, skin_probabilities = test_single_image(
         skin_model, input_img, device, classes_for_skin_color
@@ -98,8 +104,9 @@ def analyze_image(input_img):
 
 
     try:
+        print('imageeee ', input_img)
         # code for eye extraction
-        extacted_eye_area = eye_extract(input_img, 'eye_output')
+        extacted_eye_area = eye_detect(input_img, 'eye_output')
 
         fig2 = plt.figure(figsize=(7, 5))
         eye_predicted_class, eye_probabilities = test_single_image(

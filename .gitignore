@@ -171,5 +171,7 @@ cython_debug/
 .pypirc
 
 # Other folders
+eye_shape/shape_predictor_68_face_landmarks.dat
 dlib
 models
+test.py
