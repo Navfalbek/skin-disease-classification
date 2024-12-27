@@ -10,8 +10,6 @@ import cv2
 from EyeNet import EyeNet
 from FacialSkinColorNet import FacialSkinColorNet
 
-from extract_eye_from_face import extract_eye_area
-from face_detection import eye_extract
 from eye_detection import eye_detect
 
 
@@ -53,7 +51,7 @@ def test_single_image(model, image, device, classes):
     try:
         if isinstance(image, np.ndarray):
             image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        
+            
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -68,7 +66,7 @@ def test_single_image(model, image, device, classes):
             predicted_class = torch.argmax(probabilities, dim=1).item()
 
         class_probs = {class_name: float(prob) for class_name, prob in zip(classes, probabilities[0])}
-        
+
         return classes[predicted_class], class_probs
     
     except Exception as e:
@@ -99,7 +97,7 @@ def analyze_image(input_img):
         plt.title(f"Skin Prediction: {skin_predicted_class}")
         plt.ylabel("Confidence (%)")
         plt.ylim(0, 100)
-        plt.xticks(rotation=45, ha='right')
+        plt.xticks(rotation=45, ha='right') 
         plt.tight_layout()
 
 
